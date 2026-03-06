@@ -35,10 +35,6 @@ public class EditorManager {
         this.editor = editor;
     }
 
-    // =============================
-    // MÉTODO PRINCIPAL
-    // =============================
-
     public void guardarDocumento(String ruta) {
         try (RandomAccessFile rafObj = new RandomAccessFile(ruta, "rw")) {
             rafObj.setLength(0); // Limpiar archivo previo
@@ -64,21 +60,43 @@ public class EditorManager {
             e.printStackTrace();
         }
     }
+    
+    public void leerDocumento(String ruta) {
+        try (RandomAccessFile raf = new RandomAccessFile(ruta, "r")) {
+            StyledDocument doc = editor.getStyledDocument();
+            doc.remove(0, doc.getLength()); // Limpiar editor actual
+            if (raf.length() == 0) return;
+            int totalCaracteres = raf.readInt();
+            for (int i = 0; i < totalCaracteres; i++) {
+                char letra = raf.readChar();
+                String fuente = raf.readUTF();
+                int tamano = raf.readInt();
+                int colorRGB = raf.readInt();
+                boolean negrita = raf.readBoolean();
+                boolean cursiva = raf.readBoolean();
+                boolean subrayado = raf.readBoolean();
+                
+                SimpleAttributeSet attrs = new SimpleAttributeSet();
+                StyleConstants.setFontFamily(attrs, fuente);
+                StyleConstants.setFontSize(attrs, tamano);
+                StyleConstants.setForeground(attrs, new Color(colorRGB));
+                StyleConstants.setBold(attrs, negrita);
+                StyleConstants.setItalic(attrs, cursiva);
+                StyleConstants.setUnderline(attrs, subrayado);
 
-    // =============================
-    // CREAR O ABRIR DOCUMENTO
-    // =============================
+                // Insertar en el JTextPane
+                doc.insertString(doc.getLength(), String.valueOf(letra), attrs);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
 
     private XWPFDocument crearDocumento(String ruta) throws Exception {
-
-        // Siempre crear un documento nuevo para evitar fusión de contenidos
         return new XWPFDocument();
 
     }
-
-    // =============================
-    // ESCRIBIR CONTENIDO
-    // =============================
 
     private void escribirContenido(XWPFDocument documento) throws Exception {
         StyledDocument doc = editor.getStyledDocument();
