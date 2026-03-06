@@ -1,18 +1,16 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package lab6_file;
 
 import java.awt.Color;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 
 import javax.swing.JTextPane;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
-import org.apache.poi.xwpf.usermodel.UnderlinePatterns;
 
+import org.apache.poi.xwpf.usermodel.UnderlinePatterns;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
@@ -33,7 +31,7 @@ public class EditorManager {
 
         try {
 
-            XWPFDocument documento = crearDocumento();
+            XWPFDocument documento = crearDocumento(ruta);
 
             escribirContenido(documento);
 
@@ -46,11 +44,24 @@ public class EditorManager {
     }
 
     // =============================
-    // CREAR DOCUMENTO
+    // CREAR O ABRIR DOCUMENTO
     // =============================
 
-    private XWPFDocument crearDocumento() {
-        return new XWPFDocument();
+    private XWPFDocument crearDocumento(String ruta) throws Exception {
+
+        File archivo = new File(ruta);
+
+        if (archivo.exists()) {
+
+            FileInputStream fis = new FileInputStream(archivo);
+            return new XWPFDocument(fis);
+
+        } else {
+
+            return new XWPFDocument();
+
+        }
+
     }
 
     // =============================
@@ -74,6 +85,7 @@ public class EditorManager {
             aplicarEstilos(run, attr);
 
             run.setText(letra);
+
         }
 
     }
@@ -134,8 +146,11 @@ public class EditorManager {
     private void aplicarColor(XWPFRun run, AttributeSet attr) {
 
         Color color = StyleConstants.getForeground(attr);
-        String hex = convertirColorHex(color);
-        run.setColor(hex);
+
+        if (color != null) {
+            String hex = convertirColorHex(color);
+            run.setColor(hex);
+        }
 
     }
 
@@ -168,7 +183,7 @@ public class EditorManager {
 
     }
 
-    //     =============================
+    // =============================
     // GUARDAR ARCHIVO
     // =============================
 
@@ -183,4 +198,5 @@ public class EditorManager {
         documento.close();
 
     }
+
 }
