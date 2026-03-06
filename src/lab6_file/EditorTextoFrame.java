@@ -105,6 +105,7 @@ public class EditorTextoFrame extends JFrame {
         add(panelInferior, BorderLayout.SOUTH);
 
         aceptarBtn.addActionListener(e -> guardarDocumento());
+        cancelarBtn.addActionListener(e -> System.exit(0));
     }
 
     private void toggleBold() { aplicarEstiloSeleccion(StyleConstants::setBold, boldBtn.isSelected(), (v) -> isBoldActive = v); }
