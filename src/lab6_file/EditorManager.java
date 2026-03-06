@@ -366,7 +366,7 @@ public class EditorManager {
     // ABRIR DOCUMENTO DOCX CON RAF
     // =============================
 
-    public void abrirDocumento(String ruta) {
+    public void abrirDocumento(String ruta) throws Exception {
         
         XWPFDocument documento = null;
         
@@ -405,9 +405,6 @@ public class EditorManager {
                 
             }
             
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Error al abrir el documento: " + e.getMessage(), e);
         } finally {
             if (documento != null) {
                 try {

@@ -233,15 +233,6 @@ public class EditorTextoFrame extends JFrame {
                 EditorManager manager = new EditorManager(areaTexto);
                 manager.abrirDocumento(ruta);
                 JOptionPane.showMessageDialog(this, "Documento abierto correctamente");
-            } catch (java.io.FileNotFoundException ex) {
-                if (ex.getMessage().contains("being used by another process")) {
-                    JOptionPane.showMessageDialog(this, 
-                        "El archivo está siendo usado por otro programa.\nCierra el archivo en Word u otra aplicación e intenta nuevamente.", 
-                        "Archivo en uso", 
-                        JOptionPane.WARNING_MESSAGE);
-                } else {
-                    JOptionPane.showMessageDialog(this, "Error: Archivo no encontrado", "Error", JOptionPane.ERROR_MESSAGE);
-                }
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Error abriendo archivo: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
