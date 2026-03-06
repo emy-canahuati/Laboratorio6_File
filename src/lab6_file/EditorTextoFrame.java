@@ -1,9 +1,13 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package lab6_file;
+
+
 import javax.swing.*;
 import java.awt.*;
-import javax.swing.text.AttributeSet;
-import javax.swing.text.SimpleAttributeSet;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyledDocument;
+import javax.swing.text.*;
 
 public class EditorTextoFrame extends JFrame {
 
@@ -27,7 +31,6 @@ public class EditorTextoFrame extends JFrame {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // PANEL SUPERIOR
         JPanel panelSuperior = new JPanel(new BorderLayout());
         panelSuperior.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
 
@@ -53,75 +56,12 @@ public class EditorTextoFrame extends JFrame {
         // BOTONES ESTILO
         boldBtn = new JButton("B");
         boldBtn.setFont(new Font("Arial",Font.BOLD,14));
-        
-        boldBtn.addActionListener(e -> {
-            int start = areaTexto.getSelectionStart();
-            int end = areaTexto.getSelectionEnd();
-            if(start != end){
 
-                    StyledDocument doc = areaTexto.getStyledDocument();
-
-                    AttributeSet currentAttrs = doc.getCharacterElement(start).getAttributes();
-                    boolean isBold = StyleConstants.isBold(currentAttrs);
-                    
-                    
-                    
-                    SimpleAttributeSet attrs = new SimpleAttributeSet();
-                    StyleConstants.setBold(attrs, !isBold);
-
-                    doc.setCharacterAttributes(start, end - start, attrs, false);
-                    System.out.println(areaTexto.getSelectedText());
-            }
-
-            
-        });
         italicBtn = new JButton("I");
         italicBtn.setFont(new Font("Arial",Font.ITALIC,14));
 
-        italicBtn.addActionListener(e -> {
-            int start = areaTexto.getSelectionStart();
-            int end = areaTexto.getSelectionEnd();
-            if(start != end){
-
-                    StyledDocument doc = areaTexto.getStyledDocument();
-
-                    AttributeSet currentAttrs = doc.getCharacterElement(start).getAttributes();
-                    boolean isItalic = StyleConstants.isItalic(currentAttrs);
-                    
-                    
-                    
-                    SimpleAttributeSet attrs = new SimpleAttributeSet();
-                    StyleConstants.setItalic(attrs, !isItalic);
-
-                    doc.setCharacterAttributes(start, end - start, attrs, false);
-                    System.out.println(areaTexto.getSelectedText());
-            }
-
-            
-        });
         underlineBtn = new JButton("U");
-        underlineBtn.addActionListener(e -> {
-                    int start = areaTexto.getSelectionStart();
-                    int end = areaTexto.getSelectionEnd();
-                    if(start != end){
 
-                            StyledDocument doc = areaTexto.getStyledDocument();
-
-                            AttributeSet currentAttrs = doc.getCharacterElement(start).getAttributes();
-                            boolean isUnderline = StyleConstants.isUnderline(currentAttrs);
-
-
-
-                            SimpleAttributeSet attrs = new SimpleAttributeSet();
-                            StyleConstants.setUnderline(attrs, !isUnderline);
-
-                            doc.setCharacterAttributes(start, end - start, attrs, false);
-                            System.out.println(areaTexto.getSelectedText());
-                    }
-
-            
-        });
-        
         herramientas.add(new JLabel("Fuente"));
         herramientas.add(fuenteBox);
 
@@ -134,9 +74,8 @@ public class EditorTextoFrame extends JFrame {
 
         panelSuperior.add(herramientas,BorderLayout.WEST);
 
-        // PALETA DE COLORES
+        // COLORES
         JPanel coloresPanel = new JPanel(new GridLayout(2,8,5,5));
-        coloresPanel.setBorder(BorderFactory.createTitledBorder("Colores utilizados"));
 
         Color[] colores = {
                 Color.BLACK, Color.WHITE, Color.RED, Color.GRAY,
@@ -151,6 +90,23 @@ public class EditorTextoFrame extends JFrame {
             colorBtn.setBackground(c);
             colorBtn.setPreferredSize(new Dimension(25,25));
 
+            colorBtn.addActionListener(e -> {
+
+                int start = areaTexto.getSelectionStart();
+                int end = areaTexto.getSelectionEnd();
+
+                if(start != end){
+
+                    StyledDocument doc = areaTexto.getStyledDocument();
+                    SimpleAttributeSet attrs = new SimpleAttributeSet();
+
+                    StyleConstants.setForeground(attrs, c);
+
+                    doc.setCharacterAttributes(start, end - start, attrs, false);
+                }
+
+            });
+
             coloresPanel.add(colorBtn);
         }
 
@@ -158,12 +114,11 @@ public class EditorTextoFrame extends JFrame {
 
         add(panelSuperior,BorderLayout.NORTH);
 
-        // AREA DE TEXTO
+        // AREA TEXTO
         areaTexto = new JTextPane();
         areaTexto.setFont(new Font("Arial",Font.PLAIN,20));
 
         JScrollPane scroll = new JScrollPane(areaTexto);
-
         add(scroll,BorderLayout.CENTER);
 
         // PANEL INFERIOR
@@ -172,13 +127,138 @@ public class EditorTextoFrame extends JFrame {
         aceptarBtn = new JButton("Aceptar");
         cancelarBtn = new JButton("Cancelar");
 
-        aceptarBtn.setPreferredSize(new Dimension(100,30));
-        cancelarBtn.setPreferredSize(new Dimension(100,30));
-
         panelInferior.add(aceptarBtn);
         panelInferior.add(cancelarBtn);
 
         add(panelInferior,BorderLayout.SOUTH);
+
+        // =========================
+        // ACCIONES
+        // =========================
+
+        boldBtn.addActionListener(e -> toggleBold());
+        italicBtn.addActionListener(e -> toggleItalic());
+        underlineBtn.addActionListener(e -> toggleUnderline());
+
+        fuenteBox.addActionListener(e -> cambiarFuente());
+        tamañoBox.addActionListener(e -> cambiarTamaño());
+
+        aceptarBtn.addActionListener(e -> guardarDocx());
+        cancelarBtn.addActionListener(e -> areaTexto.setText(""));
+    }
+
+    private void toggleBold(){
+
+        int start = areaTexto.getSelectionStart();
+        int end = areaTexto.getSelectionEnd();
+
+        if(start != end){
+
+            StyledDocument doc = areaTexto.getStyledDocument();
+            AttributeSet attrs = doc.getCharacterElement(start).getAttributes();
+
+            boolean bold = StyleConstants.isBold(attrs);
+
+            SimpleAttributeSet nuevo = new SimpleAttributeSet();
+            StyleConstants.setBold(nuevo,!bold);
+
+            doc.setCharacterAttributes(start,end-start,nuevo,false);
+        }
+    }
+
+    private void toggleItalic(){
+
+        int start = areaTexto.getSelectionStart();
+        int end = areaTexto.getSelectionEnd();
+
+        if(start != end){
+
+            StyledDocument doc = areaTexto.getStyledDocument();
+            AttributeSet attrs = doc.getCharacterElement(start).getAttributes();
+
+            boolean italic = StyleConstants.isItalic(attrs);
+
+            SimpleAttributeSet nuevo = new SimpleAttributeSet();
+            StyleConstants.setItalic(nuevo,!italic);
+
+            doc.setCharacterAttributes(start,end-start,nuevo,false);
+        }
+    }
+
+    private void toggleUnderline(){
+
+        int start = areaTexto.getSelectionStart();
+        int end = areaTexto.getSelectionEnd();
+
+        if(start != end){
+
+            StyledDocument doc = areaTexto.getStyledDocument();
+            AttributeSet attrs = doc.getCharacterElement(start).getAttributes();
+
+            boolean underline = StyleConstants.isUnderline(attrs);
+
+            SimpleAttributeSet nuevo = new SimpleAttributeSet();
+            StyleConstants.setUnderline(nuevo,!underline);
+
+            doc.setCharacterAttributes(start,end-start,nuevo,false);
+        }
+    }
+
+    private void cambiarFuente(){
+
+        String fuente = (String) fuenteBox.getSelectedItem();
+
+        int start = areaTexto.getSelectionStart();
+        int end = areaTexto.getSelectionEnd();
+
+        if(start != end){
+
+            StyledDocument doc = areaTexto.getStyledDocument();
+            SimpleAttributeSet attrs = new SimpleAttributeSet();
+
+            StyleConstants.setFontFamily(attrs, fuente);
+
+            doc.setCharacterAttributes(start,end-start,attrs,false);
+        }
+    }
+
+    private void cambiarTamaño(){
+
+        int tamaño = Integer.parseInt((String)tamañoBox.getSelectedItem());
+
+        int start = areaTexto.getSelectionStart();
+        int end = areaTexto.getSelectionEnd();
+
+        if(start != end){
+
+            StyledDocument doc = areaTexto.getStyledDocument();
+            SimpleAttributeSet attrs = new SimpleAttributeSet();
+
+            StyleConstants.setFontSize(attrs,tamaño);
+
+            doc.setCharacterAttributes(start,end-start,attrs,false);
+        }
+    }
+
+    private void guardarDocx(){
+
+        JFileChooser chooser = new JFileChooser();
+
+        int opcion = chooser.showSaveDialog(this);
+
+        if(opcion == JFileChooser.APPROVE_OPTION){
+
+            String ruta = chooser.getSelectedFile().getAbsolutePath();
+
+            if(!ruta.endsWith(".docx")){
+                ruta += ".docx";
+            }
+
+            EditorManager manager = new EditorManager(areaTexto);
+            manager.guardarDocumento(ruta);
+
+            JOptionPane.showMessageDialog(this,"Documento guardado");
+        }
     }
 
     public static void main(String[] args){
@@ -191,6 +271,3 @@ public class EditorTextoFrame extends JFrame {
 
     }
 }
-
-
-
