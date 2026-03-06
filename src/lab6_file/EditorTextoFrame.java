@@ -202,12 +202,22 @@ public class EditorTextoFrame extends JFrame {
         if(opcion == JFileChooser.APPROVE_OPTION) {
             String ruta = chooser.getSelectedFile().getAbsolutePath();
             if (!ruta.endsWith(".docx")) ruta += ".docx";
+            
             try {
                 EditorManager manager = new EditorManager(areaTexto);
                 manager.guardarDocumento(ruta);
                 JOptionPane.showMessageDialog(this, "Documento guardado correctamente");
+            } catch (java.io.FileNotFoundException ex) {
+                if (ex.getMessage().contains("being used by another process")) {
+                    JOptionPane.showMessageDialog(this, 
+                        "El archivo está siendo usado por otro programa.\nCierra el archivo en Word u otra aplicación e intenta nuevamente.", 
+                        "Archivo en uso", 
+                        JOptionPane.WARNING_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Error: Archivo no encontrado", "Error", JOptionPane.ERROR_MESSAGE);
+                }
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Error guardando archivo: " + ex.getMessage());
+                JOptionPane.showMessageDialog(this, "Error guardando archivo: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
@@ -218,12 +228,22 @@ public class EditorTextoFrame extends JFrame {
         int opcion = chooser.showOpenDialog(this);
         if(opcion == JFileChooser.APPROVE_OPTION) {
             String ruta = chooser.getSelectedFile().getAbsolutePath();
+            
             try {
                 EditorManager manager = new EditorManager(areaTexto);
                 manager.abrirDocumento(ruta);
                 JOptionPane.showMessageDialog(this, "Documento abierto correctamente");
+            } catch (java.io.FileNotFoundException ex) {
+                if (ex.getMessage().contains("being used by another process")) {
+                    JOptionPane.showMessageDialog(this, 
+                        "El archivo está siendo usado por otro programa.\nCierra el archivo en Word u otra aplicación e intenta nuevamente.", 
+                        "Archivo en uso", 
+                        JOptionPane.WARNING_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Error: Archivo no encontrado", "Error", JOptionPane.ERROR_MESSAGE);
+                }
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Error abriendo archivo: " + ex.getMessage());
+                JOptionPane.showMessageDialog(this, "Error abriendo archivo: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }

@@ -35,76 +35,180 @@ public class EditorManager {
         this.editor = editor;
     }
 
-    public void guardarDocumento(String ruta) {
-        try (RandomAccessFile rafObj = new RandomAccessFile(ruta, "rw")) {
-            rafObj.setLength(0); // Limpiar archivo previo
+    // =============================
+    // MÉTODO PRINCIPAL - GUARDAR DOCX
+    // =============================
+
+    public void guardarDocumento(String ruta) throws Exception {
+
+        XWPFDocument documento = crearDocumento(ruta);
+
+        escribirContenido(documento);
+
+        guardarArchivo(documento, ruta);
+
+    }
+
+    // =============================
+    // GUARDAR CON RAF (RandomAccessFile)
+    // =============================
+
+    public void guardarConRAF(String ruta) {
+        try (RandomAccessFile raf = new RandomAccessFile(ruta, "rw")) {
+            raf.setLength(0); // Limpiar archivo previo
             StyledDocument doc = editor.getStyledDocument();
-            int totalCaracteres = doc.getLength();
-
-            rafObj.writeInt(totalCaracteres); // Guardar cuántas letras hay
-
-            for (int i = 0; i < totalCaracteres; i++) {
-                String letra = doc.getText(i, 1);
+            
+            // Primero, contar elementos (texto y tablas)
+            int numElementos = 0;
+            for (int i = 0; i < doc.getLength(); i++) {
+                numElementos++;
+            }
+            
+            raf.writeInt(numElementos); // Guardar número de elementos
+            
+            // Guardar cada elemento
+            for (int i = 0; i < doc.getLength(); i++) {
                 AttributeSet attr = doc.getCharacterElement(i).getAttributes();
-
-                // Escribir datos del carácter
-                rafObj.writeChar(letra.charAt(0));
-                rafObj.writeUTF(StyleConstants.getFontFamily(attr));
-                rafObj.writeInt(StyleConstants.getFontSize(attr));
-                rafObj.writeInt(StyleConstants.getForeground(attr).getRGB());
-                rafObj.writeBoolean(StyleConstants.isBold(attr));
-                rafObj.writeBoolean(StyleConstants.isItalic(attr));
-                rafObj.writeBoolean(StyleConstants.isUnderline(attr));
+                Component comp = StyleConstants.getComponent(attr);
+                
+                if (comp != null && comp instanceof JScrollPane) {
+                    // Es una tabla
+                    JScrollPane scroll = (JScrollPane) comp;
+                    Component vista = scroll.getViewport().getView();
+                    if (vista instanceof JTable) {
+                        JTable tabla = (JTable) vista;
+                        raf.writeBoolean(true); // Indicador de tabla
+                        guardarTablaRAF(raf, tabla);
+                    }
+                } else {
+                    // Es texto normal
+                    String letra = doc.getText(i, 1);
+                    raf.writeBoolean(false); // Indicador de texto
+                    raf.writeChar(letra.charAt(0));
+                    raf.writeUTF(StyleConstants.getFontFamily(attr));
+                    raf.writeInt(StyleConstants.getFontSize(attr));
+                    raf.writeInt(StyleConstants.getForeground(attr).getRGB());
+                    raf.writeBoolean(StyleConstants.isBold(attr));
+                    raf.writeBoolean(StyleConstants.isItalic(attr));
+                    raf.writeBoolean(StyleConstants.isUnderline(attr));
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-    
-    public void leerDocumento(String ruta) {
+
+    private void guardarTablaRAF(RandomAccessFile raf, JTable tabla) throws Exception {
+        int filas = tabla.getRowCount();
+        int cols = tabla.getColumnCount();
+        
+        raf.writeInt(filas);
+        raf.writeInt(cols);
+        
+        for (int i = 0; i < filas; i++) {
+            for (int j = 0; j < cols; j++) {
+                Object valor = tabla.getValueAt(i, j);
+                String texto = (valor != null) ? valor.toString() : "";
+                raf.writeUTF(texto);
+            }
+        }
+    }
+
+    // =============================
+    // LEER CON RAF (RandomAccessFile)
+    // =============================
+
+    public void leerConRAF(String ruta) {
         try (RandomAccessFile raf = new RandomAccessFile(ruta, "r")) {
             StyledDocument doc = editor.getStyledDocument();
-            doc.remove(0, doc.getLength()); // Limpiar editor actual
+            doc.remove(0, doc.getLength()); // Limpiar editor
+            
             if (raf.length() == 0) return;
-            int totalCaracteres = raf.readInt();
-            for (int i = 0; i < totalCaracteres; i++) {
-                char letra = raf.readChar();
-                String fuente = raf.readUTF();
-                int tamano = raf.readInt();
-                int colorRGB = raf.readInt();
-                boolean negrita = raf.readBoolean();
-                boolean cursiva = raf.readBoolean();
-                boolean subrayado = raf.readBoolean();
+            
+            int numElementos = raf.readInt();
+            
+            for (int i = 0; i < numElementos; i++) {
+                boolean esTabla = raf.readBoolean();
                 
-                SimpleAttributeSet attrs = new SimpleAttributeSet();
-                StyleConstants.setFontFamily(attrs, fuente);
-                StyleConstants.setFontSize(attrs, tamano);
-                StyleConstants.setForeground(attrs, new Color(colorRGB));
-                StyleConstants.setBold(attrs, negrita);
-                StyleConstants.setItalic(attrs, cursiva);
-                StyleConstants.setUnderline(attrs, subrayado);
-
-                // Insertar en el JTextPane
-                doc.insertString(doc.getLength(), String.valueOf(letra), attrs);
+                if (esTabla) {
+                    // Leer tabla
+                    leerTablaRAF(raf, doc);
+                } else {
+                    // Leer texto
+                    char letra = raf.readChar();
+                    String fuente = raf.readUTF();
+                    int tamano = raf.readInt();
+                    int colorRGB = raf.readInt();
+                    boolean negrita = raf.readBoolean();
+                    boolean cursiva = raf.readBoolean();
+                    boolean subrayado = raf.readBoolean();
+                    
+                    SimpleAttributeSet attrs = new SimpleAttributeSet();
+                    StyleConstants.setFontFamily(attrs, fuente);
+                    StyleConstants.setFontSize(attrs, tamano);
+                    StyleConstants.setForeground(attrs, new Color(colorRGB));
+                    StyleConstants.setBold(attrs, negrita);
+                    StyleConstants.setItalic(attrs, cursiva);
+                    StyleConstants.setUnderline(attrs, subrayado);
+                    
+                    doc.insertString(doc.getLength(), String.valueOf(letra), attrs);
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-    
+
+    private void leerTablaRAF(RandomAccessFile raf, StyledDocument doc) throws Exception {
+        int filas = raf.readInt();
+        int cols = raf.readInt();
+        
+        Object[][] datos = new Object[filas][cols];
+        String[] columnas = new String[cols];
+        for (int i = 0; i < cols; i++) columnas[i] = "";
+        
+        for (int i = 0; i < filas; i++) {
+            for (int j = 0; j < cols; j++) {
+                datos[i][j] = raf.readUTF();
+            }
+        }
+        
+        JTable tabla = new JTable(datos, columnas);
+        tabla.setPreferredScrollableViewportSize(tabla.getPreferredSize());
+        tabla.setFillsViewportHeight(true);
+        JScrollPane scrollTabla = new JScrollPane(tabla);
+        
+        SimpleAttributeSet attrs = new SimpleAttributeSet();
+        StyleConstants.setComponent(attrs, scrollTabla);
+        doc.insertString(doc.getLength(), " ", attrs);
+    }
+
+    // =============================
+    // CREAR O ABRIR DOCUMENTO
+    // =============================
 
     private XWPFDocument crearDocumento(String ruta) throws Exception {
+
+        // Siempre crear un documento nuevo para evitar fusión de contenidos
         return new XWPFDocument();
 
     }
 
+    // =============================
+    // ESCRIBIR CONTENIDO
+    // =============================
+
     private void escribirContenido(XWPFDocument documento) throws Exception {
+        
         StyledDocument doc = editor.getStyledDocument();
         XWPFParagraph parrafo = documento.createParagraph();
+        
         for (int i = 0; i < doc.getLength(); i++) {
+            
             AttributeSet attr = obtenerAtributos(doc, i);
             Component comp = StyleConstants.getComponent(attr);
             
+            // Verificar si hay un componente embebido (tabla)
             if (comp != null) {
                 if (comp instanceof JScrollPane) {
                     JScrollPane scroll = (JScrollPane) comp;
@@ -112,12 +216,20 @@ public class EditorManager {
                     if (vista instanceof JTable) {
                         JTable tabla = (JTable) vista;
                         crearTablaDocx(documento, tabla);
-                        parrafo = documento.createParagraph(); // Nuevo párrafo después de la tabla
+                        parrafo = documento.createParagraph();
                     }
                 }
-                continue; // Saltar el carácter del componente
+                continue;
             }
+            
             String letra = obtenerCaracter(doc, i);
+            
+            // Manejar saltos de línea
+            if (letra.equals("\n")) {
+                parrafo = documento.createParagraph();
+                continue;
+            }
+            
             XWPFRun run = crearRun(parrafo);
             aplicarEstilos(run, attr);
             run.setText(letra);
@@ -214,21 +326,31 @@ public class EditorManager {
     }
 
 
+    // =============================
+    // GUARDAR ARCHIVO DOCX CON RAF
+    // =============================
+
     private void guardarArchivo(XWPFDocument documento, String ruta) throws Exception {
-        FileOutputStream out = null;
         
-        try {
-            out = new FileOutputStream(ruta);
-            documento.write(out);
+        File archivo = new File(ruta);
+        
+        // Si el archivo existe, eliminarlo primero para permitir sobrescritura
+        if (archivo.exists()) {
+            archivo.delete();
+        }
+        
+        // Usar RAF para escribir el documento
+        try (RandomAccessFile raf = new RandomAccessFile(archivo, "rw")) {
+            // Escribir el documento a un array de bytes primero
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            documento.write(baos);
+            byte[] bytes = baos.toByteArray();
+            
+            // Escribir los bytes usando RAF
+            raf.write(bytes);
+            
+            baos.close();
         } finally {
-            if (out != null) {
-                try {
-                    out.flush();
-                    out.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
             if (documento != null) {
                 try {
                     documento.close();
@@ -237,15 +359,15 @@ public class EditorManager {
                 }
             }
         }
+        
     }
 
     // =============================
-    // ABRIR DOCUMENTO
+    // ABRIR DOCUMENTO DOCX CON RAF
     // =============================
 
     public void abrirDocumento(String ruta) {
         
-        FileInputStream fis = null;
         XWPFDocument documento = null;
         
         try {
@@ -254,9 +376,18 @@ public class EditorManager {
             editor.setText("");
             StyledDocument doc = editor.getStyledDocument();
             
-            // Abrir el archivo DOCX con try-with-resources
-            fis = new FileInputStream(ruta);
-            documento = new XWPFDocument(fis);
+            // Leer el archivo usando RAF
+            File archivo = new File(ruta);
+            byte[] bytes = new byte[(int) archivo.length()];
+            
+            try (RandomAccessFile raf = new RandomAccessFile(archivo, "r")) {
+                raf.readFully(bytes);
+            }
+            
+            // Crear documento desde bytes
+            java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(bytes);
+            documento = new XWPFDocument(bais);
+            bais.close();
             
             // Leer párrafos y tablas
             List<org.apache.poi.xwpf.usermodel.IBodyElement> elementos = documento.getBodyElements();
@@ -278,20 +409,12 @@ public class EditorManager {
             e.printStackTrace();
             throw new RuntimeException("Error al abrir el documento: " + e.getMessage(), e);
         } finally {
-            // Cerrar recursos en orden inverso
-            try {
-                if (documento != null) {
+            if (documento != null) {
+                try {
                     documento.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            try {
-                if (fis != null) {
-                    fis.close();
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
             }
         }
         
