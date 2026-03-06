@@ -26,11 +26,9 @@ public class EditorTextoFrame extends JFrame {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // Panel superior con dos filas
         JPanel panelSuperior = new JPanel(new BorderLayout());
         panelSuperior.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // Primera fila: Archivo y herramientas de formato
         JPanel primeraFila = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
         
         abrirBtn = new JButton("Abrir");
@@ -67,7 +65,6 @@ public class EditorTextoFrame extends JFrame {
         primeraFila.add(italicBtn);
         primeraFila.add(underlineBtn);
 
-        // Segunda fila: Colores y tabla
         JPanel segundaFila = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
         
         tablaBtn = new JButton("Crear Tabla");
@@ -85,7 +82,6 @@ public class EditorTextoFrame extends JFrame {
         }
         segundaFila.add(tablaBtn);
 
-        // Combinar ambas filas
         JPanel herramientasCompleto = new JPanel(new BorderLayout());
         herramientasCompleto.add(primeraFila, BorderLayout.NORTH);
         herramientasCompleto.add(segundaFila, BorderLayout.CENTER);
@@ -94,13 +90,11 @@ public class EditorTextoFrame extends JFrame {
 
         add(panelSuperior, BorderLayout.NORTH);
 
-        // Área de texto
         areaTexto = new JTextPane();
         areaTexto.setFont(new Font(currentFont, Font.PLAIN, currentSize));
         JScrollPane scroll = new JScrollPane(areaTexto);
         add(scroll, BorderLayout.CENTER);
 
-        // Panel inferior con aceptar/cancelar
         JPanel panelInferior = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
         aceptarBtn = new JButton("Aceptar");
         cancelarBtn = new JButton("Cancelar");
@@ -110,11 +104,9 @@ public class EditorTextoFrame extends JFrame {
         panelInferior.add(cancelarBtn);
         add(panelInferior, BorderLayout.SOUTH);
 
-        // Lógica del botón aceptar (guardar documento)
         aceptarBtn.addActionListener(e -> guardarDocumento());
     }
 
-    // Lógica de estilos
     private void toggleBold() { aplicarEstiloSeleccion(StyleConstants::setBold, boldBtn.isSelected(), (v) -> isBoldActive = v); }
     private void toggleItalic() { aplicarEstiloSeleccion(StyleConstants::setItalic, italicBtn.isSelected(), (v) -> isItalicActive = v); }
     private void toggleUnderline() { aplicarEstiloSeleccion(StyleConstants::setUnderline, underlineBtn.isSelected(), (v) -> isUnderlineActive = v); }

@@ -35,10 +35,6 @@ public class EditorManager {
         this.editor = editor;
     }
 
-    // =============================
-    // MÉTODO PRINCIPAL - GUARDAR DOCX
-    // =============================
-
     public void guardarDocumento(String ruta) throws Exception {
 
         XWPFDocument documento = crearDocumento(ruta);
@@ -49,41 +45,34 @@ public class EditorManager {
 
     }
 
-    // =============================
-    // GUARDAR CON RAF (RandomAccessFile)
-    // =============================
-
     public void guardarConRAF(String ruta) {
         try (RandomAccessFile raf = new RandomAccessFile(ruta, "rw")) {
-            raf.setLength(0); // Limpiar archivo previo
+            raf.setLength(0); 
             StyledDocument doc = editor.getStyledDocument();
             
-            // Primero, contar elementos (texto y tablas)
             int numElementos = 0;
             for (int i = 0; i < doc.getLength(); i++) {
                 numElementos++;
             }
             
-            raf.writeInt(numElementos); // Guardar número de elementos
+            raf.writeInt(numElementos); 
             
-            // Guardar cada elemento
             for (int i = 0; i < doc.getLength(); i++) {
                 AttributeSet attr = doc.getCharacterElement(i).getAttributes();
                 Component comp = StyleConstants.getComponent(attr);
                 
                 if (comp != null && comp instanceof JScrollPane) {
-                    // Es una tabla
                     JScrollPane scroll = (JScrollPane) comp;
                     Component vista = scroll.getViewport().getView();
                     if (vista instanceof JTable) {
                         JTable tabla = (JTable) vista;
-                        raf.writeBoolean(true); // Indicador de tabla
+                        raf.writeBoolean(true);
                         guardarTablaRAF(raf, tabla);
                     }
                 } else {
-                    // Es texto normal
+                    
                     String letra = doc.getText(i, 1);
-                    raf.writeBoolean(false); // Indicador de texto
+                    raf.writeBoolean(false); 
                     raf.writeChar(letra.charAt(0));
                     raf.writeUTF(StyleConstants.getFontFamily(attr));
                     raf.writeInt(StyleConstants.getFontSize(attr));
@@ -114,14 +103,11 @@ public class EditorManager {
         }
     }
 
-    // =============================
-    // LEER CON RAF (RandomAccessFile)
-    // =============================
-
+   
     public void leerConRAF(String ruta) {
         try (RandomAccessFile raf = new RandomAccessFile(ruta, "r")) {
             StyledDocument doc = editor.getStyledDocument();
-            doc.remove(0, doc.getLength()); // Limpiar editor
+            doc.remove(0, doc.getLength()); 
             
             if (raf.length() == 0) return;
             
@@ -183,20 +169,12 @@ public class EditorManager {
         doc.insertString(doc.getLength(), " ", attrs);
     }
 
-    // =============================
-    // CREAR O ABRIR DOCUMENTO
-    // =============================
-
+  
     private XWPFDocument crearDocumento(String ruta) throws Exception {
 
-        // Siempre crear un documento nuevo para evitar fusión de contenidos
         return new XWPFDocument();
 
     }
-
-    // =============================
-    // ESCRIBIR CONTENIDO
-    // =============================
 
     private void escribirContenido(XWPFDocument documento) throws Exception {
         
@@ -208,7 +186,6 @@ public class EditorManager {
             AttributeSet attr = obtenerAtributos(doc, i);
             Component comp = StyleConstants.getComponent(attr);
             
-            // Verificar si hay un componente embebido (tabla)
             if (comp != null) {
                 if (comp instanceof JScrollPane) {
                     JScrollPane scroll = (JScrollPane) comp;
@@ -224,7 +201,6 @@ public class EditorManager {
             
             String letra = obtenerCaracter(doc, i);
             
-            // Manejar saltos de línea
             if (letra.equals("\n")) {
                 parrafo = documento.createParagraph();
                 continue;
@@ -242,15 +218,13 @@ public class EditorManager {
         XWPFTable tablaDocx = documento.createTable(filas, cols);
         CTTblWidth tblWidth = tablaDocx.getCTTbl().addNewTblPr().addNewTblW();
         tblWidth.setType(STTblWidth.PCT);
-        tblWidth.setW(BigInteger.valueOf(5000)); // 100% = 5000      
-        // Llenar contenido de la tabla
+        tblWidth.setW(BigInteger.valueOf(5000));    
         for (int i = 0; i < filas; i++) {
             XWPFTableRow fila = tablaDocx.getRow(i);
             for (int j = 0; j < cols; j++) {
                 XWPFTableCell celda = fila.getCell(j);
                 Object valor = tabla.getValueAt(i, j);
                 String texto = (valor != null) ? valor.toString() : "";      
-                // Limpiar contenido previo y agregar nuevo
                 if (celda.getParagraphs().size() > 0) {
                     celda.removeParagraph(0);
                 }
@@ -325,28 +299,19 @@ public class EditorManager {
                 color.getBlue());
     }
 
-
-    // =============================
-    // GUARDAR ARCHIVO DOCX CON RAF
-    // =============================
-
     private void guardarArchivo(XWPFDocument documento, String ruta) throws Exception {
         
         File archivo = new File(ruta);
         
-        // Si el archivo existe, eliminarlo primero para permitir sobrescritura
         if (archivo.exists()) {
             archivo.delete();
         }
         
-        // Usar RAF para escribir el documento
         try (RandomAccessFile raf = new RandomAccessFile(archivo, "rw")) {
-            // Escribir el documento a un array de bytes primero
             java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
             documento.write(baos);
             byte[] bytes = baos.toByteArray();
             
-            // Escribir los bytes usando RAF
             raf.write(bytes);
             
             baos.close();
@@ -362,21 +327,15 @@ public class EditorManager {
         
     }
 
-    // =============================
-    // ABRIR DOCUMENTO DOCX CON RAF
-    // =============================
-
     public void abrirDocumento(String ruta) throws Exception {
         
         XWPFDocument documento = null;
         
         try {
             
-            // Limpiar el editor
             editor.setText("");
             StyledDocument doc = editor.getStyledDocument();
             
-            // Leer el archivo usando RAF
             File archivo = new File(ruta);
             byte[] bytes = new byte[(int) archivo.length()];
             
@@ -384,12 +343,10 @@ public class EditorManager {
                 raf.readFully(bytes);
             }
             
-            // Crear documento desde bytes
             java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(bytes);
             documento = new XWPFDocument(bais);
             bais.close();
             
-            // Leer párrafos y tablas
             List<org.apache.poi.xwpf.usermodel.IBodyElement> elementos = documento.getBodyElements();
             
             for (org.apache.poi.xwpf.usermodel.IBodyElement elemento : elementos) {
@@ -416,11 +373,6 @@ public class EditorManager {
         }
         
     }
-
-    // =============================
-    // LEER PÁRRAFO
-    // =============================
-
     private void leerParrafo(StyledDocument doc, XWPFParagraph parrafo) throws Exception {
         
         List<XWPFRun> runs = parrafo.getRuns();
@@ -432,7 +384,6 @@ public class EditorManager {
             
             SimpleAttributeSet attrs = new SimpleAttributeSet();
             
-            // Aplicar estilos del run
             String fuente = run.getFontFamily();
             if (fuente != null) StyleConstants.setFontFamily(attrs, fuente);
             
@@ -455,16 +406,10 @@ public class EditorManager {
             doc.insertString(doc.getLength(), texto, attrs);
             
         }
-        
-        // Agregar salto de línea al final del párrafo
         doc.insertString(doc.getLength(), "\n", null);
         
     }
-
-    // =============================
-    // LEER TABLA
-    // =============================
-
+    
     private void leerTabla(StyledDocument doc, XWPFTable tablaDocx) throws Exception {
         
         int filas = tablaDocx.getNumberOfRows();
@@ -472,7 +417,6 @@ public class EditorManager {
         
         if (filas == 0 || cols == 0) return;
         
-        // Crear JTable con los datos
         Object[][] datos = new Object[filas][cols];
         String[] columnas = new String[cols];
         for (int i = 0; i < cols; i++) columnas[i] = "";
@@ -491,17 +435,12 @@ public class EditorManager {
         tabla.setFillsViewportHeight(true);
         JScrollPane scrollTabla = new JScrollPane(tabla);
         
-        // Insertar la tabla en el documento
         SimpleAttributeSet attrs = new SimpleAttributeSet();
         StyleConstants.setComponent(attrs, scrollTabla);
         doc.insertString(doc.getLength(), " ", attrs);
         doc.insertString(doc.getLength(), "\n", null);
         
     }
-
-    // =============================
-    // CONVERTIR HEX A COLOR
-    // =============================
 
     private Color hexAColor(String hex) {
         
