@@ -1,3 +1,4 @@
+
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
@@ -8,7 +9,6 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.text.*;
 import java.awt.*;
-import javax.swing.JFileChooser;
 
 public class EditorTextoFrame extends JFrame {
 
@@ -40,6 +40,7 @@ public class EditorTextoFrame extends JFrame {
 
         String[] tamaños = {"8","10","12","14","16","18","20","24","36","42","48","64","92","144","190","240","300"};
         tamañoBox = new JComboBox<>(tamaños);
+        tamañoBox.setSelectedItem("20");
         tamañoBox.setPreferredSize(new Dimension(70, 25));
         tamañoBox.addActionListener(e -> changeSize());
 
@@ -94,136 +95,92 @@ public class EditorTextoFrame extends JFrame {
         add(scroll, BorderLayout.CENTER);
 
         JPanel panelInferior = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
+        
         aceptarBtn = new JButton("Aceptar");
-        aceptarBtn.addActionListener(e -> guardarDocumento());
-        cancelarBtn = new JButton("Cancelar");
         aceptarBtn.setPreferredSize(new Dimension(100, 30));
+        aceptarBtn.addActionListener(e -> guardarDocumento());
+        
+        cancelarBtn = new JButton("Cancelar");
         cancelarBtn.setPreferredSize(new Dimension(100, 30));
+        cancelarBtn.addActionListener(e -> {
+            // Regla especial: Si se rinde, es victoria y 3 puntos para el otro
+            int salir = JOptionPane.showConfirmDialog(this, "¿Deseas salir? (Rendirse otorga 3 puntos al oponente)", "Salir", JOptionPane.YES_NO_OPTION);
+            if(salir == JOptionPane.YES_OPTION) System.exit(0);
+        });
+
         panelInferior.add(aceptarBtn);
         panelInferior.add(cancelarBtn);
         add(panelInferior, BorderLayout.SOUTH);
     }
     
     private void guardarDocumento() {
-
         JFileChooser chooser = new JFileChooser();
-        chooser.setDialogTitle("Guardar documento");
+        chooser.setDialogTitle("Guardar documento .docx");
 
         int opcion = chooser.showSaveDialog(this);
 
         if (opcion == JFileChooser.APPROVE_OPTION) {
-
             String ruta = chooser.getSelectedFile().getAbsolutePath();
 
-            if (!ruta.endsWith(".docx")) {
+            if (!ruta.toLowerCase().endsWith(".docx")) {
                 ruta += ".docx";
             }
 
             try {
-
+                // Instanciamos tu EditorManager con el JTextPane actual
                 EditorManager manager = new EditorManager(areaTexto);
                 manager.guardarDocumento(ruta);
 
-                JOptionPane.showMessageDialog(this, "Documento guardado correctamente");
-
+                JOptionPane.showMessageDialog(this, "Documento guardado correctamente en:\n" + ruta);
             } catch (Exception ex) {
-
-                JOptionPane.showMessageDialog(this, "Error guardando archivo: " + ex.getMessage());
-
+                JOptionPane.showMessageDialog(this, "Error guardando archivo: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
-
         }
-
     }
 
     private void toggleBold() {
-        boolean value = boldBtn.isSelected();
-        isBoldActive = value;
-        aplicarEstiloSeleccion(value, StyleConstants::setBold);
+        isBoldActive = boldBtn.isSelected();
+        aplicarEstiloGeneral();
     }
 
     private void toggleItalic() {
-        boolean value = italicBtn.isSelected();
-        isItalicActive = value;
-        aplicarEstiloSeleccion(value, StyleConstants::setItalic);
+        isItalicActive = italicBtn.isSelected();
+        aplicarEstiloGeneral();
     }
 
     private void toggleUnderline() {
-        boolean value = underlineBtn.isSelected();
-        isUnderlineActive = value;
-        aplicarEstiloSeleccion(value, StyleConstants::setUnderline);
-    }
-
-    private void aplicarEstiloSeleccion(boolean value, BiConsumer<SimpleAttributeSet, Boolean> setter) {
-        int start = areaTexto.getSelectionStart();
-        int end = areaTexto.getSelectionEnd();
-        SimpleAttributeSet attrs = new SimpleAttributeSet();
-        setter.accept(attrs, value);
-        StyleConstants.setFontFamily(attrs, currentFont);
-        StyleConstants.setFontSize(attrs, currentSize);
-        StyleConstants.setForeground(attrs, currentColor);
-        if(start != end) {
-            areaTexto.getStyledDocument().setCharacterAttributes(start, end - start, attrs, false);
-        } else {
-            areaTexto.setCharacterAttributes(attrs, false);
-        }
+        isUnderlineActive = underlineBtn.isSelected();
+        aplicarEstiloGeneral();
     }
 
     private void changeFont() {
         currentFont = (String) fuenteBox.getSelectedItem();
-        aplicarEstiloSeleccionFont(currentFont);
+        aplicarEstiloGeneral();
     }
 
     private void changeSize() {
         currentSize = Integer.parseInt((String) tamañoBox.getSelectedItem());
-        aplicarEstiloSeleccionFontSize(currentSize);
+        aplicarEstiloGeneral();
     }
 
     private void changeColor(Color color){
         currentColor = color;
-        int start = areaTexto.getSelectionStart();
-        int end = areaTexto.getSelectionEnd();
-        SimpleAttributeSet attrs = new SimpleAttributeSet();
-        StyleConstants.setForeground(attrs, currentColor);
-        StyleConstants.setFontFamily(attrs, currentFont);
-        StyleConstants.setFontSize(attrs, currentSize);
-        StyleConstants.setBold(attrs, isBoldActive);
-        StyleConstants.setItalic(attrs, isItalicActive);
-        StyleConstants.setUnderline(attrs, isUnderlineActive);
-        if(start != end) {
-            areaTexto.getStyledDocument().setCharacterAttributes(start, end - start, attrs, false);
-        } else {
-            areaTexto.setCharacterAttributes(attrs, false);
-        }
+        aplicarEstiloGeneral();
     }
 
-    private void aplicarEstiloSeleccionFont(String font) {
+    // Método unificado para aplicar todos los estados actuales (Color, Fuente, Size, Estilos)
+    private void aplicarEstiloGeneral() {
         int start = areaTexto.getSelectionStart();
         int end = areaTexto.getSelectionEnd();
+        
         SimpleAttributeSet attrs = new SimpleAttributeSet();
-        StyleConstants.setFontFamily(attrs, font);
+        StyleConstants.setFontFamily(attrs, currentFont);
         StyleConstants.setFontSize(attrs, currentSize);
         StyleConstants.setForeground(attrs, currentColor);
         StyleConstants.setBold(attrs, isBoldActive);
         StyleConstants.setItalic(attrs, isItalicActive);
         StyleConstants.setUnderline(attrs, isUnderlineActive);
-        if(start != end) {
-            areaTexto.getStyledDocument().setCharacterAttributes(start, end - start, attrs, false);
-        } else {
-            areaTexto.setCharacterAttributes(attrs, false);
-        }
-    }
 
-    private void aplicarEstiloSeleccionFontSize(int size) {
-        int start = areaTexto.getSelectionStart();
-        int end = areaTexto.getSelectionEnd();
-        SimpleAttributeSet attrs = new SimpleAttributeSet();
-        StyleConstants.setFontSize(attrs, size);
-        StyleConstants.setFontFamily(attrs, currentFont);
-        StyleConstants.setForeground(attrs, currentColor);
-        StyleConstants.setBold(attrs, isBoldActive);
-        StyleConstants.setItalic(attrs, isItalicActive);
-        StyleConstants.setUnderline(attrs, isUnderlineActive);
         if(start != end) {
             areaTexto.getStyledDocument().setCharacterAttributes(start, end - start, attrs, false);
         } else {
@@ -242,15 +199,18 @@ public class EditorTextoFrame extends JFrame {
 
             Object[][] datos = new Object[filas][cols];
             String[] columnas = new String[cols];
-            for(int i=0;i<cols;i++) columnas[i] = "";
+            for(int i=0; i<cols; i++) columnas[i] = "Col " + (i+1);
 
             JTable tabla = new JTable(datos, columnas);
             tabla.setFillsViewportHeight(true);
-            Font tablaFont = new Font(currentFont,
-                    (isBoldActive ? Font.BOLD : 0) | (isItalicActive ? Font.ITALIC : 0),
+            
+            // Estilo de la tabla basado en el editor actual
+            Font tablaFont = new Font(currentFont, 
+                    (isBoldActive ? Font.BOLD : 0) | (isItalicActive ? Font.ITALIC : 0), 
                     currentSize);
             tabla.setFont(tablaFont);
             tabla.setForeground(currentColor);
+            tabla.setRowHeight(currentSize + 5);
 
             tabla.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
                 @Override
@@ -265,8 +225,9 @@ public class EditorTextoFrame extends JFrame {
             });
 
             JScrollPane scrollTabla = new JScrollPane(tabla);
-            scrollTabla.setPreferredSize(new Dimension(600, 200));
+            scrollTabla.setPreferredSize(new Dimension(600, 150));
 
+            // Insertar la tabla como un componente en el JTextPane
             StyledDocument doc = areaTexto.getStyledDocument();
             SimpleAttributeSet attrs = new SimpleAttributeSet();
             StyleConstants.setComponent(attrs, scrollTabla);
