@@ -6,11 +6,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.math.BigInteger;
+import java.util.List;
 
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextPane;
 import javax.swing.text.AttributeSet;
+import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
@@ -241,14 +243,186 @@ public class EditorManager {
 
     private void guardarArchivo(XWPFDocument documento, String ruta) throws Exception {
 
-        FileOutputStream out = new FileOutputStream(ruta);
+        FileOutputStream out = null;
+        
+        try {
+            out = new FileOutputStream(ruta);
+            documento.write(out);
+        } finally {
+            if (out != null) {
+                try {
+                    out.flush();
+                    out.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            if (documento != null) {
+                try {
+                    documento.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
 
-        documento.write(out);
+    }
 
-        out.close();
+    // =============================
+    // ABRIR DOCUMENTO
+    // =============================
 
-        documento.close();
+    public void abrirDocumento(String ruta) {
+        
+        FileInputStream fis = null;
+        XWPFDocument documento = null;
+        
+        try {
+            
+            // Limpiar el editor
+            editor.setText("");
+            StyledDocument doc = editor.getStyledDocument();
+            
+            // Abrir el archivo DOCX con try-with-resources
+            fis = new FileInputStream(ruta);
+            documento = new XWPFDocument(fis);
+            
+            // Leer párrafos y tablas
+            List<org.apache.poi.xwpf.usermodel.IBodyElement> elementos = documento.getBodyElements();
+            
+            for (org.apache.poi.xwpf.usermodel.IBodyElement elemento : elementos) {
+                
+                if (elemento instanceof XWPFParagraph) {
+                    XWPFParagraph parrafo = (XWPFParagraph) elemento;
+                    leerParrafo(doc, parrafo);
+                    
+                } else if (elemento instanceof XWPFTable) {
+                    XWPFTable tabla = (XWPFTable) elemento;
+                    leerTabla(doc, tabla);
+                }
+                
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Error al abrir el documento: " + e.getMessage(), e);
+        } finally {
+            // Cerrar recursos en orden inverso
+            try {
+                if (documento != null) {
+                    documento.close();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
+                if (fis != null) {
+                    fis.close();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        
+    }
 
+    // =============================
+    // LEER PÁRRAFO
+    // =============================
+
+    private void leerParrafo(StyledDocument doc, XWPFParagraph parrafo) throws Exception {
+        
+        List<XWPFRun> runs = parrafo.getRuns();
+        
+        for (XWPFRun run : runs) {
+            
+            String texto = run.getText(0);
+            if (texto == null) continue;
+            
+            SimpleAttributeSet attrs = new SimpleAttributeSet();
+            
+            // Aplicar estilos del run
+            String fuente = run.getFontFamily();
+            if (fuente != null) StyleConstants.setFontFamily(attrs, fuente);
+            
+            int tamano = run.getFontSize();
+            if (tamano > 0) StyleConstants.setFontSize(attrs, tamano);
+            
+            StyleConstants.setBold(attrs, run.isBold());
+            StyleConstants.setItalic(attrs, run.isItalic());
+            
+            if (run.getUnderline() != UnderlinePatterns.NONE) {
+                StyleConstants.setUnderline(attrs, true);
+            }
+            
+            String colorHex = run.getColor();
+            if (colorHex != null) {
+                Color color = hexAColor(colorHex);
+                StyleConstants.setForeground(attrs, color);
+            }
+            
+            doc.insertString(doc.getLength(), texto, attrs);
+            
+        }
+        
+        // Agregar salto de línea al final del párrafo
+        doc.insertString(doc.getLength(), "\n", null);
+        
+    }
+
+    // =============================
+    // LEER TABLA
+    // =============================
+
+    private void leerTabla(StyledDocument doc, XWPFTable tablaDocx) throws Exception {
+        
+        int filas = tablaDocx.getNumberOfRows();
+        int cols = (filas > 0) ? tablaDocx.getRow(0).getTableCells().size() : 0;
+        
+        if (filas == 0 || cols == 0) return;
+        
+        // Crear JTable con los datos
+        Object[][] datos = new Object[filas][cols];
+        String[] columnas = new String[cols];
+        for (int i = 0; i < cols; i++) columnas[i] = "";
+        
+        for (int i = 0; i < filas; i++) {
+            XWPFTableRow fila = tablaDocx.getRow(i);
+            List<XWPFTableCell> celdas = fila.getTableCells();
+            for (int j = 0; j < cols && j < celdas.size(); j++) {
+                XWPFTableCell celda = celdas.get(j);
+                datos[i][j] = celda.getText();
+            }
+        }
+        
+        JTable tabla = new JTable(datos, columnas);
+        tabla.setPreferredScrollableViewportSize(tabla.getPreferredSize());
+        tabla.setFillsViewportHeight(true);
+        JScrollPane scrollTabla = new JScrollPane(tabla);
+        
+        // Insertar la tabla en el documento
+        SimpleAttributeSet attrs = new SimpleAttributeSet();
+        StyleConstants.setComponent(attrs, scrollTabla);
+        doc.insertString(doc.getLength(), " ", attrs);
+        doc.insertString(doc.getLength(), "\n", null);
+        
+    }
+
+    // =============================
+    // CONVERTIR HEX A COLOR
+    // =============================
+
+    private Color hexAColor(String hex) {
+        
+        try {
+            int r = Integer.parseInt(hex.substring(0, 2), 16);
+            int g = Integer.parseInt(hex.substring(2, 4), 16);
+            int b = Integer.parseInt(hex.substring(4, 6), 16);
+            return new Color(r, g, b);
+        } catch (Exception e) {
+            return Color.BLACK;
+        }
+        
     }
 
 }

@@ -11,7 +11,7 @@ public class EditorTextoFrame extends JFrame {
 
     private JComboBox<String> fuenteBox, tamañoBox;
     private JToggleButton boldBtn, italicBtn, underlineBtn;
-    private JButton tablaBtn, aceptarBtn, cancelarBtn;
+    private JButton tablaBtn, aceptarBtn, cancelarBtn, abrirBtn;
     private JTextPane areaTexto;
 
     private boolean isBoldActive = false, isItalicActive = false, isUnderlineActive = false;
@@ -26,12 +26,16 @@ public class EditorTextoFrame extends JFrame {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // Panel superior
+        // Panel superior con dos filas
         JPanel panelSuperior = new JPanel(new BorderLayout());
         panelSuperior.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // Herramientas: fuente, tamaño, estilos, tabla
-        JPanel herramientas = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        // Primera fila: Archivo y herramientas de formato
+        JPanel primeraFila = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        
+        abrirBtn = new JButton("Abrir");
+        abrirBtn.addActionListener(e -> abrirDocumento());
+        
         String[] fuentes = GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames();
         fuenteBox = new JComboBox<>(fuentes);
         fuenteBox.setPreferredSize(new Dimension(180, 25));
@@ -54,22 +58,22 @@ public class EditorTextoFrame extends JFrame {
         underlineBtn.setFont(new Font("Arial", Font.PLAIN, 14));
         underlineBtn.addActionListener(e -> toggleUnderline());
 
+        primeraFila.add(abrirBtn);
+        primeraFila.add(new JLabel("Fuente"));
+        primeraFila.add(fuenteBox);
+        primeraFila.add(new JLabel("Tamaño"));
+        primeraFila.add(tamañoBox);
+        primeraFila.add(boldBtn);
+        primeraFila.add(italicBtn);
+        primeraFila.add(underlineBtn);
+
+        // Segunda fila: Colores y tabla
+        JPanel segundaFila = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        
         tablaBtn = new JButton("Crear Tabla");
         tablaBtn.addActionListener(e -> crearTabla());
-
-        herramientas.add(new JLabel("Fuente"));
-        herramientas.add(fuenteBox);
-        herramientas.add(new JLabel("Tamaño"));
-        herramientas.add(tamañoBox);
-        herramientas.add(boldBtn);
-        herramientas.add(italicBtn);
-        herramientas.add(underlineBtn);
-        herramientas.add(tablaBtn);
-
-        panelSuperior.add(herramientas, BorderLayout.WEST);
-
-        // Panel de colores
-        JPanel colorPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        
+        segundaFila.add(new JLabel("Colores:"));
         Color[] colores = {Color.BLACK, Color.RED, Color.BLUE, Color.GREEN, Color.ORANGE, Color.MAGENTA, Color.CYAN, Color.PINK, Color.GRAY};
         for (Color c : colores) {
             JButton colorBtn = new JButton();
@@ -77,9 +81,16 @@ public class EditorTextoFrame extends JFrame {
             colorBtn.setPreferredSize(new Dimension(25, 25));
             colorBtn.setBorder(BorderFactory.createLineBorder(Color.BLACK));
             colorBtn.addActionListener(e -> changeColor(c));
-            colorPanel.add(colorBtn);
+            segundaFila.add(colorBtn);
         }
-        panelSuperior.add(colorPanel, BorderLayout.EAST);
+        segundaFila.add(tablaBtn);
+
+        // Combinar ambas filas
+        JPanel herramientasCompleto = new JPanel(new BorderLayout());
+        herramientasCompleto.add(primeraFila, BorderLayout.NORTH);
+        herramientasCompleto.add(segundaFila, BorderLayout.CENTER);
+        
+        panelSuperior.add(herramientasCompleto, BorderLayout.CENTER);
 
         add(panelSuperior, BorderLayout.NORTH);
 
@@ -197,6 +208,22 @@ public class EditorTextoFrame extends JFrame {
                 JOptionPane.showMessageDialog(this, "Documento guardado correctamente");
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Error guardando archivo: " + ex.getMessage());
+            }
+        }
+    }
+
+    private void abrirDocumento() {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Abrir documento");
+        int opcion = chooser.showOpenDialog(this);
+        if(opcion == JFileChooser.APPROVE_OPTION) {
+            String ruta = chooser.getSelectedFile().getAbsolutePath();
+            try {
+                EditorManager manager = new EditorManager(areaTexto);
+                manager.abrirDocumento(ruta);
+                JOptionPane.showMessageDialog(this, "Documento abierto correctamente");
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error abriendo archivo: " + ex.getMessage());
             }
         }
     }
