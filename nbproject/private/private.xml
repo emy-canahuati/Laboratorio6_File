@@ -3,8 +3,18 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
+<<<<<<< HEAD
             <file>file:/D:/Java%20Trabajos/Lab6_File/Laboratorio6_File/src/lab6_file/EditorTextoFrame.java</file>
             <file>file:/D:/Java%20Trabajos/Lab6_File/Laboratorio6_File/src/lab6_file/Lab6_File.java</file>
+=======
+<<<<<<< HEAD
+            <file>file:/C:/Users/emyca/OneDrive/Documentos/Lab%20Programacion%20II/Laboratorio%20%236/Lab6_File/src/lab6_file/Lab6_File.java</file>
+            <file>file:/C:/Users/emyca/OneDrive/Documentos/Lab%20Programacion%20II/Laboratorio%20%236/Lab6_File/src/lab6_file/EditorTextoFrame.java</file>
+            <file>file:/C:/Users/emyca/OneDrive/Documentos/Lab%20Programacion%20II/Laboratorio%20%236/Lab6_File/src/lab6_file/EditorManager.java</file>
+=======
+            <file>file:/C:/Users/palma/OneDrive/Documentos/JavaProjects/Laboratorio6_File/src/lab6_file/EditorTextoFrame.java</file>
+>>>>>>> 43c9d52217788499cff429d3f3ab6082eb34b175
+>>>>>>> 86cbcf999a4e21f4ad470596e0c4f0ea125ff4f4
         </group>
     </open-files>
 </project-private>

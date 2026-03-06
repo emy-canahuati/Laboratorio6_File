@@ -10,11 +10,6 @@ package lab6_file;
  */
 public class Lab6_File {
 
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String[] args) {
-        // TODO code application logic here
-    }
+    
     
 }
