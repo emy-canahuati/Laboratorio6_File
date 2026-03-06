@@ -5,6 +5,7 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.text.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.*;
 import javax.swing.JFileChooser;
 
 public class EditorTextoFrame extends JFrame {
@@ -18,6 +19,7 @@ public class EditorTextoFrame extends JFrame {
     private Color currentColor = Color.BLACK;
     private int currentSize = 20;
     private String currentFont = "Arial";
+    private String rutaDocumentoActual = null;
 
     public EditorTextoFrame() {
         setTitle("Editor de texto");
@@ -189,29 +191,40 @@ public class EditorTextoFrame extends JFrame {
     }
 
     private void guardarDocumento() {
-        JFileChooser chooser = new JFileChooser();
-        chooser.setDialogTitle("Guardar documento");
-        int opcion = chooser.showSaveDialog(this);
-        if(opcion == JFileChooser.APPROVE_OPTION) {
-            String ruta = chooser.getSelectedFile().getAbsolutePath();
-            if (!ruta.endsWith(".docx")) ruta += ".docx";
-            
+        if (rutaDocumentoActual == null) {
+
             try {
-                EditorManager manager = new EditorManager(areaTexto);
-                manager.guardarDocumento(ruta);
-                JOptionPane.showMessageDialog(this, "Documento guardado correctamente");
-            } catch (java.io.FileNotFoundException ex) {
-                if (ex.getMessage().contains("being used by another process")) {
-                    JOptionPane.showMessageDialog(this, 
-                        "El archivo está siendo usado por otro programa.\nCierra el archivo en Word u otra aplicación e intenta nuevamente.", 
-                        "Archivo en uso", 
-                        JOptionPane.WARNING_MESSAGE);
-                } else {
-                    JOptionPane.showMessageDialog(this, "Error: Archivo no encontrado", "Error", JOptionPane.ERROR_MESSAGE);
-                }
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Error guardando archivo: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                ImageIcon icono = new ImageIcon("abrir_documento.png");
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Debe abrir un documento primero",
+                        "Advertencia",
+                        JOptionPane.WARNING_MESSAGE,
+                        icono
+                );
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Debe abrir un documento primero",
+                        "Advertencia",
+                        JOptionPane.WARNING_MESSAGE
+                );
             }
+            return;
+        }
+        try {
+
+            EditorManager manager = new EditorManager(areaTexto);
+            manager.guardarDocumento(rutaDocumentoActual);
+            JOptionPane.showMessageDialog(this, "Documento guardado correctamente");
+
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Error guardando archivo: " + ex.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
         }
     }
 
@@ -219,15 +232,39 @@ public class EditorTextoFrame extends JFrame {
         JFileChooser chooser = new JFileChooser();
         chooser.setDialogTitle("Abrir documento");
         int opcion = chooser.showOpenDialog(this);
-        if(opcion == JFileChooser.APPROVE_OPTION) {
-            String ruta = chooser.getSelectedFile().getAbsolutePath();
-            
+        if (opcion == JFileChooser.APPROVE_OPTION) {
+
+            File archivo = chooser.getSelectedFile();
+            String ruta = archivo.getAbsolutePath();
+
+            if (!ruta.toLowerCase().endsWith(".docx")) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "El archivo debe ser formato .docx",
+                        "Formato inválido",
+                        JOptionPane.ERROR_MESSAGE
+                );
+                return;
+            }
             try {
+                if (!archivo.exists()) {
+                    archivo.createNewFile();
+                }
                 EditorManager manager = new EditorManager(areaTexto);
-                manager.abrirDocumento(ruta);
+
+                if (archivo.length() > 0) {
+                    manager.abrirDocumento(ruta);
+                } else {
+                    areaTexto.setText("");
+                }
+                rutaDocumentoActual = ruta;
                 JOptionPane.showMessageDialog(this, "Documento abierto correctamente");
+
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Error abriendo archivo: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this,
+                        "Error abriendo archivo: " + ex.getMessage(),
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
             }
         }
     }
