@@ -1,14 +1,17 @@
 package lab6_file;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.RandomAccessFile;
+import java.math.BigInteger;
 
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
 import javax.swing.JTextPane;
 import javax.swing.text.AttributeSet;
-import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
@@ -16,6 +19,11 @@ import org.apache.poi.xwpf.usermodel.UnderlinePatterns;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
+import org.apache.poi.xwpf.usermodel.XWPFTable;
+import org.apache.poi.xwpf.usermodel.XWPFTableRow;
+import org.apache.poi.xwpf.usermodel.XWPFTableCell;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTblWidth;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STTblWidth;
 
 public class EditorManager {
 
@@ -25,18 +33,23 @@ public class EditorManager {
         this.editor = editor;
     }
 
+    // =============================
+    // MÉTODO PRINCIPAL
+    // =============================
+
     public void guardarDocumento(String ruta) {
         try (RandomAccessFile rafObj = new RandomAccessFile(ruta, "rw")) {
-            rafObj.setLength(0);
+            rafObj.setLength(0); // Limpiar archivo previo
             StyledDocument doc = editor.getStyledDocument();
             int totalCaracteres = doc.getLength();
 
-            rafObj.writeInt(totalCaracteres);
+            rafObj.writeInt(totalCaracteres); // Guardar cuántas letras hay
 
             for (int i = 0; i < totalCaracteres; i++) {
                 String letra = doc.getText(i, 1);
                 AttributeSet attr = doc.getCharacterElement(i).getAttributes();
 
+                // Escribir datos del carácter
                 rafObj.writeChar(letra.charAt(0));
                 rafObj.writeUTF(StyleConstants.getFontFamily(attr));
                 rafObj.writeInt(StyleConstants.getFontSize(attr));
@@ -50,63 +63,73 @@ public class EditorManager {
         }
     }
 
-    public void leerDocumento(String ruta) {
-        try (RandomAccessFile raf = new RandomAccessFile(ruta, "r")) {
-            StyledDocument doc = editor.getStyledDocument();
-            doc.remove(0, doc.getLength()); // Limpiar editor actual
-            if (raf.length() == 0) {
-                return;
-            }
-            int totalCaracteres = raf.readInt();
-            for (int i = 0; i < totalCaracteres; i++) {
-                char letra = raf.readChar();
-                String fuente = raf.readUTF();
-                int tamano = raf.readInt();
-                int colorRGB = raf.readInt();
-                boolean negrita = raf.readBoolean();
-                boolean cursiva = raf.readBoolean();
-                boolean subrayado = raf.readBoolean();
-
-                // Crear los atributos para este carácter
-                SimpleAttributeSet attrs = new SimpleAttributeSet();
-                StyleConstants.setFontFamily(attrs, fuente);
-                StyleConstants.setFontSize(attrs, tamano);
-                StyleConstants.setForeground(attrs, new Color(colorRGB));
-                StyleConstants.setBold(attrs, negrita);
-                StyleConstants.setItalic(attrs, cursiva);
-                StyleConstants.setUnderline(attrs, subrayado);
-
-                // Insertar en el JTextPane
-                doc.insertString(doc.getLength(), String.valueOf(letra), attrs);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
+    // =============================
+    // CREAR O ABRIR DOCUMENTO
+    // =============================
 
     private XWPFDocument crearDocumento(String ruta) throws Exception {
-        File archivo = new File(ruta);
-        if (archivo.exists()) {
-            FileInputStream fis = new FileInputStream(archivo);
-            return new XWPFDocument(fis);
-        } else {
-            return new XWPFDocument();
-        }
+
+        // Siempre crear un documento nuevo para evitar fusión de contenidos
+        return new XWPFDocument();
 
     }
+
+    // =============================
+    // ESCRIBIR CONTENIDO
+    // =============================
 
     private void escribirContenido(XWPFDocument documento) throws Exception {
         StyledDocument doc = editor.getStyledDocument();
         XWPFParagraph parrafo = documento.createParagraph();
         for (int i = 0; i < doc.getLength(); i++) {
-            String letra = obtenerCaracter(doc, i);
             AttributeSet attr = obtenerAtributos(doc, i);
+            Component comp = StyleConstants.getComponent(attr);
+            
+            if (comp != null) {
+                if (comp instanceof JScrollPane) {
+                    JScrollPane scroll = (JScrollPane) comp;
+                    Component vista = scroll.getViewport().getView();
+                    if (vista instanceof JTable) {
+                        JTable tabla = (JTable) vista;
+                        crearTablaDocx(documento, tabla);
+                        parrafo = documento.createParagraph(); // Nuevo párrafo después de la tabla
+                    }
+                }
+                continue; // Saltar el carácter del componente
+            }
+            String letra = obtenerCaracter(doc, i);
             XWPFRun run = crearRun(parrafo);
             aplicarEstilos(run, attr);
             run.setText(letra);
         }
     }
+
+    private void crearTablaDocx(XWPFDocument documento, JTable tabla) {        
+        int filas = tabla.getRowCount();
+        int cols = tabla.getColumnCount();       
+        XWPFTable tablaDocx = documento.createTable(filas, cols);
+        CTTblWidth tblWidth = tablaDocx.getCTTbl().addNewTblPr().addNewTblW();
+        tblWidth.setType(STTblWidth.PCT);
+        tblWidth.setW(BigInteger.valueOf(5000)); // 100% = 5000      
+        // Llenar contenido de la tabla
+        for (int i = 0; i < filas; i++) {
+            XWPFTableRow fila = tablaDocx.getRow(i);
+            for (int j = 0; j < cols; j++) {
+                XWPFTableCell celda = fila.getCell(j);
+                Object valor = tabla.getValueAt(i, j);
+                String texto = (valor != null) ? valor.toString() : "";      
+                // Limpiar contenido previo y agregar nuevo
+                if (celda.getParagraphs().size() > 0) {
+                    celda.removeParagraph(0);
+                }
+                XWPFParagraph parrafoCelda = celda.addParagraph();
+                XWPFRun runCelda = parrafoCelda.createRun();
+                runCelda.setText(texto);
+            }
+        }
+        
+    }
+
 
     private String obtenerCaracter(StyledDocument doc, int posicion) throws Exception {
         return doc.getText(posicion, 1);
@@ -145,6 +168,7 @@ public class EditorManager {
             String hex = convertirColorHex(color);
             run.setColor(hex);
         }
+
     }
 
     private void aplicarNegrita(XWPFRun run, AttributeSet attr) {
@@ -159,15 +183,16 @@ public class EditorManager {
         if (StyleConstants.isUnderline(attr)) {
             run.setUnderline(UnderlinePatterns.SINGLE);
         }
+
     }
 
     private String convertirColorHex(Color color) {
-
         return String.format("%02X%02X%02X",
                 color.getRed(),
                 color.getGreen(),
                 color.getBlue());
     }
+
 
     private void guardarArchivo(XWPFDocument documento, String ruta) throws Exception {
         FileOutputStream out = new FileOutputStream(ruta);
@@ -175,4 +200,5 @@ public class EditorManager {
         out.close();
         documento.close();
     }
+
 }
