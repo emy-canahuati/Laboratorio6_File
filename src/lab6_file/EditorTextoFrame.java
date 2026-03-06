@@ -14,7 +14,7 @@ public class EditorTextoFrame extends JFrame {
     private JToggleButton boldBtn, italicBtn, underlineBtn;
     private JButton tablaBtn, aceptarBtn, cancelarBtn, abrirBtn;
     private JTextPane areaTexto;
-
+    
     private boolean isBoldActive = false, isItalicActive = false, isUnderlineActive = false;
     private Color currentColor = Color.BLACK;
     private int currentSize = 20;
@@ -107,7 +107,7 @@ public class EditorTextoFrame extends JFrame {
         add(panelInferior, BorderLayout.SOUTH);
 
         aceptarBtn.addActionListener(e -> guardarDocumento());
-        cancelarBtn.addActionListener(e -> System.exit(0));
+        cancelarBtn.addActionListener(e -> cancelarCambios());
     }
 
     private void toggleBold() { aplicarEstiloSeleccion(StyleConstants::setBold, boldBtn.isSelected(), (v) -> isBoldActive = v); }
@@ -269,6 +269,44 @@ public class EditorTextoFrame extends JFrame {
         }
     }
 
+    
+    private void cancelarCambios() {
+        if (rutaDocumentoActual == null) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "No hay documento abierto",
+                    "Aviso",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            return;
+        }
+        int opcion = JOptionPane.showConfirmDialog(
+                this,
+                "Se perderán los cambios no guardados.\n¿Restaurar el documento original?",
+                "Confirmar",
+                JOptionPane.YES_NO_OPTION
+        );
+        if (opcion != JOptionPane.YES_OPTION) {
+            return;
+        }
+        try {
+            EditorManager manager = new EditorManager(areaTexto);
+            manager.abrirDocumento(rutaDocumentoActual);
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Documento restaurado al estado original"
+            );
+
+        } catch (Exception ex) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Error restaurando documento: " + ex.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new EditorTextoFrame().setVisible(true));
     }
